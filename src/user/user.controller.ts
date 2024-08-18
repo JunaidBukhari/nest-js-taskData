@@ -7,13 +7,23 @@ import {
   ParseIntPipe,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
+import { AuthService } from 'src/auth/auth.service';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
-
+  constructor(private readonly userService: UserService, private readonly authService: AuthService) {}
+  @Post('login')
+  async login(@Body() req) {
+    const user = await this.userService.validateUser(req.email, req.password);
+    if (!user) {
+      return { message: 'Invalid credentials' };
+    }
+    return this.authService.login(user);
+  }
   @Post('create')
   async createUser(@Body() createUserRequest) {
     try {
@@ -35,6 +45,7 @@ export class UserController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':id/cv')
   async updateUserCV(
     @Param('id', ParseIntPipe) id: number,

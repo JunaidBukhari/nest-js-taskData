@@ -8,14 +8,20 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthService } from 'src/auth/auth.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService, private readonly authService: AuthService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly authService: AuthService,
+  ) {}
   @Post('login')
   async login(@Body() req) {
     const user = await this.userService.validateUser(req.email, req.password);
@@ -38,7 +44,6 @@ export class UserController {
         createUserRequest.password,
         createUserRequest.cvUrl,
       );
-
       return user;
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -47,10 +52,19 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @Put(':id/cv')
+  @UseInterceptors(FileInterceptor('file'))
   async updateUserCV(
     @Param('id', ParseIntPipe) id: number,
-    @Body('cvUrl') cvUrl: string,
+    @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.userService.updateUserCV(id, cvUrl);
+    try {
+      const updatedUser = await this.userService.updateUserCV(id, file);
+      return { cvUrl: updatedUser.cvUrl };
+    } catch (error) {
+      throw new HttpException(
+        'Unable to upload your CV, please try again',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

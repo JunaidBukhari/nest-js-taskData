@@ -31,7 +31,22 @@ export class UserService {
     }
     return null;
   }
-  async updateUserCV(userId: number, cvUrl: string) {
+  async updateUserCV(userId: number, file: Express.Multer.File) {
+    const formData = new FormData();
+    const blob = new Blob([file.buffer], { type: file.mimetype });
+    formData.append('file', blob, file.originalname);
+
+    formData.append('upload_preset', 'kq6ywrbn');
+    const response = await fetch(
+      'https://api.cloudinary.com/v1_1/junaidbukhari/image/upload',
+      {
+        method: 'POST',
+        body: formData,
+      },
+    );
+
+    const data = await response.json();
+    const cvUrl = data.secure_url;
     return this.prisma.user.update({
       where: { id: userId },
       data: { cvUrl },

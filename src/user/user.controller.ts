@@ -8,6 +8,7 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  Get,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { AuthService } from 'src/auth/auth.service';
@@ -15,7 +16,17 @@ import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService, private readonly authService: AuthService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly authService: AuthService,
+  ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('signed-url')
+  getSignedUrl() {
+    return this.userService.generateSignedUrl();
+  }
+
   @Post('login')
   async login(@Body() req) {
     const user = await this.userService.validateUser(req.email, req.password);
